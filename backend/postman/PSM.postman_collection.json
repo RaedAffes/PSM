@@ -1,0 +1,310 @@
+{
+  "info": {
+    "_postman_id": "4bc1295c-90b6-4f34-978a-83e23ea321c8",
+    "name": "Projects Manager API",
+    "description": "Smoke tests for authentication, role boundaries, clients, projects, users, and roles. Set adminEmail/adminPassword in a private Postman environment before running admin requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "adminEmail", "value": "" },
+    { "key": "adminPassword", "value": "", "type": "secret" },
+    { "key": "testEmail", "value": "" },
+    { "key": "testPassword", "value": "StrongPass123!" },
+    { "key": "collaboratorToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "clientId", "value": "" },
+    { "key": "projectId", "value": "" },
+    { "key": "managedUserId", "value": "" },
+    { "key": "customRoleId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register (attempted ADMIN assignment must be ignored)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('testEmail', `psm-${Date.now()}@example.com`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Registration succeeds', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Public signup receives only Collaborateur', () => {",
+                  "  pm.expect(body.roles).to.include('COLLABORATEUR');",
+                  "  pm.expect(body.roles).not.to.include('ADMIN');",
+                  "});",
+                  "pm.collectionVariables.set('collaboratorToken', body.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"tel\": \"+21612345678\",\n  \"nom\": \"Test\",\n  \"prenom\": \"Collaborateur\",\n  \"roles\": [\"ADMIN\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login as collaborator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login succeeds', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('collaboratorToken', body.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login as admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin login succeeds', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('adminToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client and project permissions",
+      "item": [
+        {
+          "name": "List clients as collaborator",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Collaborator can read clients', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{collaboratorToken}}" }],
+            "url": "{{baseUrl}}/api/clients"
+          }
+        },
+        {
+          "name": "Create client as collaborator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Collaborator can create a client', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('clientId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{collaboratorToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Postman Client\",\n  \"email\": \"postman-{{testEmail}}\",\n  \"tel\": \"+21600000000\",\n  \"adresse\": \"Tunis\"\n}"
+            },
+            "url": "{{baseUrl}}/api/clients"
+          }
+        },
+        {
+          "name": "Update client as collaborator (forbidden)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Collaborator cannot update clients', () => pm.response.to.have.status(403));"] } }],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{collaboratorToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Updated Client\",\n  \"email\": \"updated@example.com\",\n  \"tel\": \"+21600000000\",\n  \"adresse\": \"Tunis\"\n}" },
+            "url": "{{baseUrl}}/api/clients/{{clientId}}"
+          }
+        },
+        {
+          "name": "Create project as collaborator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Collaborator can create a project', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('projectId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{collaboratorToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"libelle\": \"Postman Project\",\n  \"budget\": 1000,\n  \"duree\": 5,\n  \"description\": \"API test\"\n}" },
+            "url": "{{baseUrl}}/api/projects?clientId={{clientId}}"
+          }
+        },
+        {
+          "name": "Delete project as collaborator (forbidden)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Collaborator cannot delete projects', () => pm.response.to.have.status(403));"] } }],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{collaboratorToken}}" }],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin user and role management",
+      "item": [
+        {
+          "name": "List users as collaborator (forbidden)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Only admins can list users', () => pm.response.to.have.status(403));"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{collaboratorToken}}" }],
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Create user as admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin can create a user', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response does not expose a password', () => pm.expect(body).not.to.have.property('password'));",
+                  "pm.collectionVariables.set('managedUserId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"managed-{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"tel\": \"+21612345678\",\n  \"nom\": \"Managed\",\n  \"prenom\": \"User\",\n  \"roles\": [\"COLLABORATEUR\"]\n}" },
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Update user as admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin can update a user', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"managed-{{testEmail}}\",\n  \"password\": \"\",\n  \"tel\": \"+21687654321\",\n  \"nom\": \"Updated\",\n  \"prenom\": \"User\",\n  \"roles\": [\"COLLABORATEUR\"]\n}" },
+            "url": "{{baseUrl}}/api/users/{{managedUserId}}"
+          }
+        },
+        {
+          "name": "Delete user as admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin can delete a user', () => pm.response.to.have.status(204));"] } }],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/users/{{managedUserId}}"
+          }
+        },
+        {
+          "name": "Create custom role as admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin can create a role', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('customRoleId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"libelle\": \"AUDITOR\"\n}" },
+            "url": "{{baseUrl}}/api/roles"
+          }
+        },
+        {
+          "name": "Update custom role as admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin can update a role', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"libelle\": \"SUPPORT\"\n}" },
+            "url": "{{baseUrl}}/api/roles/{{customRoleId}}"
+          }
+        },
+        {
+          "name": "Delete custom role as admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin can delete an unassigned role', () => pm.response.to.have.status(204));"] } }],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/roles/{{customRoleId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

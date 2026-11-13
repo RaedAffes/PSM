@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: projects-manager
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PSM_ADMIN_PASSWORD
+        generateValue: true
+      - key: PSM_ADMIN_EMAIL
+        value: admin@psm.com

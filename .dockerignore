@@ -1,0 +1,16 @@
+.git
+.gitignore
+.dockerignore
+.env
+.env.*
+**/application-local.properties
+**/target
+**/node_modules
+**/dist
+**/.angular
+**/*.db
+**/*.db-shm
+**/*.db-wal
+psm-frontend
+.vscode
+**/.vscode

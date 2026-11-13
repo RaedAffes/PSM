@@ -1,0 +1,42 @@
+<app-navbar *ngIf="authService.isAuthenticated() && !isAuthPage"></app-navbar>
+<main
+  class="main-content"
+  [class.main-content--public]="!authService.isAuthenticated() || isAuthPage">
+  <nav *ngIf="authService.isAuthenticated() && !isAuthPage" class="navbar navbar-top navbar-expand-md navbar-dark bg-gradient-primary app-topbar">
+    <div class="container-fluid">
+      <div>
+        <h1 class="h4 text-white text-uppercase mb-1">{{ pageTitle }}</h1>
+      </div>
+      <div class="app-signature" aria-label="Made with love by Raed">
+        <span>made with</span>
+        <svg class="app-signature-heart" viewBox="0 0 24 24" role="img" aria-label="love">
+          <path
+            d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+            fill="currentColor"
+          />
+        </svg>
+        <span>by</span>
+        <span class="app-signature-name">Raed</span>
+      </div>
+    </div>
+  </nav>
+
+  <div *ngIf="errors.message() as message" class="alert alert-danger alert-dismissible error-notice" role="alert">
+    <span>{{ message }}</span>
+    <button type="button" class="close" aria-label="Fermer le message" (click)="errors.dismiss()">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+
+  <router-outlet></router-outlet>
+
+  <footer *ngIf="authService.isAuthenticated() && !isAuthPage" class="footer app-footer">
+    <div class="row align-items-center">
+      <div class="col">
+        <div class="copyright text-center text-muted">
+          &copy; {{ currentYear }} Projects Manager
+        </div>
+      </div>
+    </div>
+  </footer>
+</main>
