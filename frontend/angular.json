@@ -5,7 +5,7 @@
     "packageManager": "npm"
   },
   "newProjectRoot": "projects",
-  "projects": {
+  "projects": { 
     "frontend": {
       "projectType": "application",
       "schematics": {
