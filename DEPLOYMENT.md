@@ -5,7 +5,7 @@ one image. Spring serves the frontend and API from the same origin. The image
 includes the SQLite JDBC driver; Spring creates the SQLite schema on first
 startup. The database file is kept in a Docker volume so it survives container
 recreation.
-
+ 
 ## Render
 
 The Render Blueprint in `render.yaml` configures the Docker service and asks
