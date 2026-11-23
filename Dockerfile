@@ -2,7 +2,7 @@ FROM node:22-alpine AS frontend-build
 WORKDIR /workspace/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
-COPY frontend/ ./
+COPY frontend/ ./ 
 RUN npm run build
 
 FROM maven:3.9-eclipse-temurin-17 AS backend-build
